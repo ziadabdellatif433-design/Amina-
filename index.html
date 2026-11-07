@@ -1,0 +1,304 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>I Love You Amina - Together Forever</title>
+    <!-- Tailwind CSS for layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Modern & Romantic typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Montserrat:ital,wght@0,300;0,500;1,300&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background-color: #030005;
+            color: #ffffff;
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body class="relative flex items-center justify-center min-h-screen overflow-hidden">
+
+    <!-- High Performance Modern Canvas Engine -->
+    <canvas id="heartCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = 0;
+        let height = 0;
+        let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        // Advanced Particle & Heart Mesh Setup
+        const isMobile = window.innerWidth < 768;
+        const HEART_PARTICLES_COUNT = isMobile ? 350 : 650;
+        const AMBIENT_SPARKLES_COUNT = isMobile ? 40 : 85;
+
+        let heartParticles = [];
+        let ambientSparkles = [];
+        let ripples = [];
+        let time = 0;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+            initHeartParticles();
+            initAmbientSparkles();
+        }
+
+        // Heart Parametric Equation for 3D/Stylized mesh
+        function getHeartPoint(t) {
+            const x = 16 * Math.pow(Math.sin(t), 3);
+            const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+            return { x, y };
+        }
+
+        function initHeartParticles() {
+            heartParticles = [];
+            for (let i = 0; i < HEART_PARTICLES_COUNT; i++) {
+                const t = Math.random() * Math.PI * 2;
+                const pt = getHeartPoint(t);
+                
+                // Add inner distribution to create a rich glowing depth inside the heart
+                const innerDist = Math.pow(Math.random(), 0.6); 
+                
+                heartParticles.push({
+                    baseX: pt.x * innerDist,
+                    baseY: pt.y * innerDist,
+                    t: t,
+                    innerDist: innerDist,
+                    size: Math.random() * 2.2 + 0.8,
+                    speed: Math.random() * 0.03 + 0.01,
+                    offset: Math.random() * Math.PI * 2,
+                    color: Math.random() > 0.3 ? '#ff2a5f' : (Math.random() > 0.5 ? '#ff758c' : '#ffffff')
+                });
+            }
+        }
+
+        function initAmbientSparkles() {
+            ambientSparkles = [];
+            for (let i = 0; i < AMBIENT_SPARKLES_COUNT; i++) {
+                ambientSparkles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    size: Math.random() * 2 + 0.5,
+                    speedY: -(Math.random() * 0.45 + 0.1),
+                    speedX: (Math.random() - 0.5) * 0.3,
+                    alpha: Math.random() * 0.6 + 0.2,
+                    fadeSpeed: Math.random() * 0.008 + 0.003
+                });
+            }
+        }
+
+        function addInteractivePoint(cx, cy) {
+            ripples.push({
+                x: cx,
+                y: cy,
+                radius: 5,
+                alpha: 0.9,
+                color: Math.random() > 0.5 ? '#ff2a5f' : '#ff758c'
+            });
+        }
+
+        // Main Render Loop
+        function render() {
+            time += 0.035;
+
+            // Deep Midnight Glow Background
+            ctx.fillStyle = '#030005';
+            ctx.fillRect(0, 0, width, height);
+
+            const centerX = width / 2;
+            const centerY = height / 2 - (isMobile ? 35 : 45);
+
+            // 1. Ambient Heart Radial Bloom
+            const ambientGlow = ctx.createRadialGradient(centerX, centerY, 10, centerX, centerY, Math.max(width, height) * 0.55);
+            ambientGlow.addColorStop(0, 'rgba(255, 20, 75, 0.22)');
+            ambientGlow.addColorStop(0.4, 'rgba(150, 0, 45, 0.08)');
+            ambientGlow.addColorStop(1, 'rgba(3, 0, 5, 0)');
+            ctx.fillStyle = ambientGlow;
+            ctx.fillRect(0, 0, width, height);
+
+            // 2. Render Floating Ambient Sparkles
+            for (let i = 0; i < ambientSparkles.length; i++) {
+                let s = ambientSparkles[i];
+                s.y += s.speedY;
+                s.x += s.speedX;
+                s.alpha += s.fadeSpeed;
+                
+                if (s.alpha > 0.85 || s.alpha < 0.15) s.fadeSpeed = -s.fadeSpeed;
+                if (s.y < 0) {
+                    s.y = height;
+                    s.x = Math.random() * width;
+                }
+
+                ctx.fillStyle = '#ff4d6d';
+                ctx.globalAlpha = Math.max(0, s.alpha);
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 3. Dynamic Beating Pulse Calculation
+            const heartBeat = Math.sin(time * 2.2);
+            const pulseScale = 1 + (heartBeat > 0 ? Math.pow(heartBeat, 2.5) * 0.08 : 0);
+
+            const baseScale = Math.min(width, height) / (isMobile ? 29 : 22);
+            const finalScale = baseScale * pulseScale;
+
+            // 4. Draw Glowing Particle Heart Mesh
+            ctx.save();
+            ctx.shadowColor = '#ff003c';
+            ctx.shadowBlur = 18 * pulseScale;
+
+            for (let i = 0; i < heartParticles.length; i++) {
+                let p = heartParticles[i];
+
+                // Orbital & Pulsing Particle Movement
+                p.t += p.speed;
+                const wave = Math.sin(time * 3 + p.offset) * 1.5;
+                const currentPt = getHeartPoint(p.t);
+                
+                // Blend base distribution with procedural heart outline
+                const px = centerX + (p.baseX * 0.65 + currentPt.x * 0.35) * finalScale + wave;
+                const py = centerY + (p.baseY * 0.65 + currentPt.y * 0.35) * finalScale + wave;
+
+                const opacity = 0.5 + Math.sin(time * 2 + p.offset) * 0.4;
+                ctx.globalAlpha = Math.max(0.1, opacity);
+                ctx.fillStyle = p.color;
+                
+                ctx.beginPath();
+                ctx.arc(px, py, p.size * (p.innerDist > 0.8 ? 1.3 : 0.9), 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // 5. Draw Stylized Outer Glowing Perimeter Lines
+            ctx.save();
+            ctx.globalAlpha = 0.45 + Math.sin(time * 2) * 0.15;
+            ctx.strokeStyle = '#ff758c';
+            ctx.lineWidth = 1.8;
+            ctx.shadowColor = '#ff2a5f';
+            ctx.shadowBlur = 15;
+            
+            ctx.beginPath();
+            for (let t = 0; t <= Math.PI * 2; t += 0.03) {
+                const pt = getHeartPoint(t);
+                const px = centerX + pt.x * finalScale;
+                const py = centerY + pt.y * finalScale;
+                if (t === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
+
+            // 6. Text INSIDE HEART: "I Love You Amina"
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const mainFontSize = Math.min(width * 0.085, isMobile ? 36 : 60);
+            ctx.font = `italic 600 ${mainFontSize}px 'Playfair Display', serif`;
+            
+            ctx.shadowColor = '#000000';
+            ctx.shadowBlur = 16;
+            ctx.shadowOffsetY = 4;
+
+            const textGrad = ctx.createLinearGradient(centerX, centerY - 25, centerX, centerY + 25);
+            textGrad.addColorStop(0, '#ffffff');
+            textGrad.addColorStop(1, '#ffe3eb');
+            
+            ctx.fillStyle = textGrad;
+            ctx.fillText('I Love You Amina', centerX, centerY + (isMobile ? 4 : 6));
+            ctx.restore();
+
+            // 7. Text BELOW HEART: "TOGETHER FOREVER" (Clean Standard Sans-Serif)
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const subFontSize = Math.min(width * 0.045, isMobile ? 18 : 28);
+            ctx.font = `600 ${subFontSize}px 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+            
+            const subGlow = 0.85 + Math.sin(time * 1.5) * 0.15;
+            ctx.globalAlpha = subGlow;
+            
+            ctx.shadowColor = '#ff2a5f';
+            ctx.shadowBlur = 14;
+
+            const subPosOffsetY = finalScale * 17 + (isMobile ? 42 : 55);
+            ctx.fillStyle = '#ffffff';
+            ctx.letterSpacing = '3px';
+            ctx.fillText('TOGETHER FOREVER', centerX, centerY + subPosOffsetY);
+            ctx.restore();
+
+            // 8. Render Click / Touch Ripples
+            for (let i = ripples.length - 1; i >= 0; i--) {
+                let r = ripples[i];
+                r.radius += 1.8;
+                r.alpha -= 0.02;
+                if (r.alpha <= 0) {
+                    ripples.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.strokeStyle = r.color;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = r.alpha;
+                ctx.beginPath();
+                ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            requestAnimationFrame(render);
+        }
+
+        // Event Listeners
+        window.addEventListener('resize', resize);
+        
+        window.addEventListener('click', (e) => {
+            addInteractivePoint(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) {
+                addInteractivePoint(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        // Start Engine
+        window.onload = function() {
+            resize();
+            render();
+        };
+    </script>
+</body>
+</html>
+```
